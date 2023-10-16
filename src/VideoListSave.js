@@ -5,6 +5,7 @@ import {
   Dimensions,
   FlatList,
   Modal,
+  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,6 +14,7 @@ import {
 import RNFS from 'react-native-fs';
 import ContentHtml from './ContentHtml';
 import Video from 'react-native-video';
+import VideoPlayer from 'react-native-video-player';
 
 import playlist from './../api.json';
 export const WIDTH = Dimensions.get('screen').width;
@@ -24,19 +26,19 @@ const VideoListSave = () => {
   const [cashPlaylistData, setCashPlaylistData] = useState(null);
   const [render, setRender] = useState(false);
 
+  const videoPath = `${RNFS.DocumentDirectoryPath}/playlist_id=${selectedCard?.id}.mp4`;
+
   const handleDownloadCardData = async () => {
     const errorText = 'Error downloading video';
     try {
-      const url = selectedCard.url;
-      const path = `${RNFS.DocumentDirectoryPath}/playlist?id=${selectedCard.id}.mp4`;
       setProgress(0);
       const response = await RNFS.downloadFile({
-        fromUrl: url,
-        toFile: path,
+        fromUrl: selectedCard.url,
+        toFile: videoPath,
         begin: response => {
           console.log('begin', response);
         },
-        progressInterval: 500,
+        progressInterval: 800,
         progress: response => {
           const progress =
             (response.bytesWritten * 100) / response.contentLength;
@@ -64,9 +66,7 @@ const VideoListSave = () => {
 
   const handleDeleteCardData = async () => {
     try {
-      await RNFS.unlink(
-        `${RNFS.DocumentDirectoryPath}/playlist?id=${selectedCard.id}.mp4`,
-      );
+      await RNFS.unlink(videoPath);
       setRender(prev => !prev);
     } catch (error) {
       console.log('Error delete video', error);
@@ -80,13 +80,11 @@ const VideoListSave = () => {
       );
 
       const filteredDocumentDirectoryPath = documentDirectoryPath.filter(item =>
-        item?.path.includes('playlist?id='),
+        item?.path.includes('playlist_id='),
       );
 
-      console.log('documentDirectoryPath', documentDirectoryPath);
-
       const filteredPlaylist = filteredDocumentDirectoryPath.map(item => {
-        const match = item?.name?.match(/playlist\?id=(\d+)/);
+        const match = item?.name?.match(/playlist_id=(\d+)/);
         return match ? match[1] : null;
       });
 
@@ -103,8 +101,23 @@ const VideoListSave = () => {
     }
   };
 
+  const checkVideo = () => {
+    RNFS.stat(videoPath)
+      .then(exists => {
+        if (exists) {
+          console.log('exists', exists);
+        } else {
+          console.log('Видео не найдено. Пожалуйста, сначала скачайте его.');
+        }
+      })
+      .catch(error => {
+        console.log('Ошибка при проверке существования видео:', error);
+      });
+  };
+
   useEffect(() => {
     getData();
+    // checkVideo();
   }, [render]);
 
   const renderItem = useCallback(
@@ -134,24 +147,11 @@ const VideoListSave = () => {
         }" title="${selectedCard?.title}" ></iframe>`}
       />
     ),
-    [selectedCard?.url, selectedCard?.title],
+    [selectedCard?.url],
   );
 
-  const readVideo = () => {
-    RNFS.readFile(
-      `${RNFS.DocumentDirectoryPath}/playlist?id=${selectedCard?.id}.mp4`,
-      'base64',
-    )
-      .then(response => {
-        console.log('response', response);
-      })
-      .catch(error => {
-        console.log('Error read video:', error);
-      });
-  };
-
   return (
-    <View>
+    <SafeAreaView>
       <FlatList
         data={cashPlaylistData}
         keyExtractor={keyExtractor}
@@ -163,17 +163,26 @@ const VideoListSave = () => {
             <View style={styles.modalCard}>
               <Text>{selectedCard.title}</Text>
               <Text>
-                {progress ? `${progress.toString().substring(0, 4)}%` : null}
+                {progress ? `${progress.toString().substring(0, 4)}%` : ''}
               </Text>
-              <View style={styles.modalVideo}>{memoizedContentHtml}</View>
-              {/* <Video
-                // source={require(`${RNFS.DocumentDirectoryPath}/playlist?id=${selectedCard.id}.mp4`)}
-                source={require(`././../assets/cat.mp4`)}
-                style={styles.video}
-                resizeMode="cover"
-                controls={true}
-              /> */}
-              {readVideo()}
+              <View style={styles.modalVideo}>
+                {selectedCard?.general ? (
+                  <VideoPlayer
+                    video={{
+                      uri: videoPath,
+                    }}
+                    videoWidth={WIDTH - 32}
+                    videoHeight={250}
+                    autoplay={true}
+                    style={styles.video}
+                    defaultMuted={false}
+                    loop={false}
+                  />
+                ) : (
+                  memoizedContentHtml
+                )}
+              </View>
+
               <View style={styles.modalBottomRow}>
                 <Button
                   title="Delete File"
@@ -191,7 +200,7 @@ const VideoListSave = () => {
           </View>
         </Modal>
       ) : null}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -220,11 +229,15 @@ const styles = StyleSheet.create({
   },
   modalVideo: {
     margin: 10,
-    backgroundColor: '#c4c4c4',
+    backgroundColor: '#000',
     width: WIDTH - 32,
     height: 250,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  video: {
+    width: WIDTH - 32,
+    height: 250,
   },
   modalBottomRow: {
     flexDirection: 'row',
@@ -235,10 +248,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  video: {
-    width: WIDTH - 32,
-    height: 250,
   },
 });
 
