@@ -12,11 +12,11 @@ import {
   View,
 } from 'react-native';
 import RNFS from 'react-native-fs';
-import ContentHtml from './ContentHtml';
 import Video from 'react-native-video';
-import VideoPlayer from 'react-native-video-player';
+import {Vimeo} from 'react-native-vimeo-iframe';
 
 import playlist from './../api.json';
+
 export const WIDTH = Dimensions.get('screen').width;
 export const HEIGHT = Dimensions.get('screen').height;
 
@@ -139,16 +139,49 @@ const VideoListSave = () => {
 
   const keyExtractor = useCallback(item => item?.id, []);
 
-  const memoizedContentHtml = useMemo(
-    () => (
-      <ContentHtml
-        html={`<iframe width="${WIDTH - 32}" height="${250}" src="${
-          selectedCard?.url
-        }" title="${selectedCard?.title}" ></iframe>`}
-      />
-    ),
-    [selectedCard?.url],
-  );
+  const videoCallbacks = {
+    timeupdate: data => console.log('timeupdate: ', data),
+    play: data => console.log('play: ', data),
+    pause: data => console.log('pause: ', data),
+    fullscreenchange: data => console.log('fullscreenchange: ', data),
+    ended: data => console.log('ended: ', data),
+    controlschange: data => console.log('controlschange: ', data),
+    audioprocess: data => console.log('audioprocess: ', data),
+    canplay: data => console.log('canplay: ', data),
+    canplaythrough: data => console.log('canplaythrough: ', data),
+    complete: data => console.log('complete: ', data),
+    durationchange: data => console.log('durationchange: ', data),
+    emptied: data => console.log('emptied: ', data),
+    loadeddata: data => console.log('loadeddata: ', data),
+    loadedmetadata: data => console.log('loadedmetadata: ', data),
+    playing: data => console.log('playing: ', data),
+    ratechange: data => console.log('ratechange: ', data),
+    seeked: data => console.log('seeked: ', data),
+    seeking: data => console.log('seeking: ', data),
+    stalled: data => console.log('stalled: ', data),
+    suspend: data => console.log('suspend: ', data),
+    volumechange: data => console.log('volumechange: ', data),
+  };
+
+  const onLoad = event => {
+    console.log('onLoad', event);
+  };
+  const onBuffer = event => {
+    console.log('onBuffer', event);
+  };
+  const onError = event => {
+    console.log('onError', event);
+  };
+  const onProgress = event => {
+    console.log('onProgress', event);
+  };
+  const onSeek = event => {
+    console.log('onSeek', event);
+  };
+  const onEnd = event => {
+    console.log('onEnd', event);
+  };
+
 
   return (
     <SafeAreaView>
@@ -167,19 +200,33 @@ const VideoListSave = () => {
               </Text>
               <View style={styles.modalVideo}>
                 {selectedCard?.general ? (
-                  <VideoPlayer
-                    video={{
-                      uri: videoPath,
-                    }}
-                    videoWidth={WIDTH - 32}
-                    videoHeight={250}
-                    autoplay={true}
+                  <Video
+                    source={{uri: 'file://' + videoPath}}
                     style={styles.video}
-                    defaultMuted={false}
-                    loop={false}
+                    onLoad={onLoad}
+                    onBuffer={onBuffer}
+                    onError={onError}
+                    onProgress={onProgress}
+                    onSeek={onSeek}
+                    onEnd={onEnd}
+                    controls
                   />
                 ) : (
-                  memoizedContentHtml
+                  // <WebView
+                  //   source={{
+                  //     html: `<iframe width="${
+                  //       WIDTH - 32
+                  //     }" height="${250}" src="${selectedCard?.url}" title="${
+                  //       selectedCard?.title
+                  //     }" ></iframe>`,
+                  //   }}
+                  //   style={styles.video}
+                  // />
+                  <Vimeo
+                    source={{uri: selectedCard?.url}}
+                    style={styles.video}
+                    handlers={videoCallbacks}
+                  />
                 )}
               </View>
 
@@ -228,7 +275,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalVideo: {
-    margin: 10,
     backgroundColor: '#000',
     width: WIDTH - 32,
     height: 250,
