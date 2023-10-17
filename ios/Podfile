@@ -19,6 +19,8 @@ prepare_react_native_project!
 # ```
 flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
 
+
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
@@ -31,10 +33,12 @@ target 'TestRNVideo' do
   # Flags change depending on the env values.
   flags = get_default_flags()
 
+  pod 'RNFS', :path => '../node_modules/react-native-fs'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # Hermes is now enabled by default. Disable by setting this flag to false.
-    :hermes_enabled => flags[:hermes_enabled],
+    :hermes_enabled => false,
     :fabric_enabled => flags[:fabric_enabled],
     # Enables Flipper.
     #
